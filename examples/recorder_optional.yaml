@@ -1,0 +1,10 @@
+# Optional: merge these keys into an existing recorder block; never create two.
+# No Recorder change is required to install AOS. Default history is about 10 days.
+# Extending retention increases the entire Recorder database, not only AOS history.
+recorder:
+  purge_keep_days: 30
+  exclude:
+    entity_globs:
+      - sensor.adaptive_occupancy_simulator_*
+# Do NOT exclude the enable switch, residents, Canary, selected lights or legacy
+# automation entities. AOS reads these to identify real occupied periods.

@@ -1,0 +1,39 @@
+stop:
+  name: Stop simulation
+  description: Cancel all future commands without changing any light.
+retrain:
+  name: Retrain model
+  description: Rebuild the model from the compact local archive.
+import_history:
+  name: Import Recorder history
+  description: Read selected entities in daily chunks, filter and retrain.
+regenerate:
+  name: Regenerate preview
+  description: Replace the current daily schedule. No direct light commands.
+clear_overrides:
+  name: Clear manual overrides
+  description: Allow future scheduled commands for manually changed lights.
+exclude_period:
+  name: Exclude historical period
+  description: Exclude an interval from learning and regenerate the model. Timestamps
+    require timezone offsets.
+  fields:
+    start:
+      name: Start
+      description: Start ISO timestamp, inclusive.
+      required: true
+      example: '2026-10-01T00:00:00-04:00'
+      selector:
+        text: {}
+    end:
+      name: End
+      description: End ISO timestamp, exclusive.
+      required: true
+      example: '2026-10-07T00:00:00-04:00'
+      selector:
+        text: {}
+    reason:
+      name: Reason
+      default: Manual exclusion
+      selector:
+        text: {}

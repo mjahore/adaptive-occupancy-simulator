@@ -1,0 +1,21 @@
+{
+  "python": "3.14.6",
+  "platform": "Darwin",
+  "architecture": "arm64",
+  "frames": 105120,
+  "lights": 32,
+  "fixture_seconds": 0.492,
+  "fit_seconds": 0.282,
+  "plan_seconds": 2.324,
+  "peak_python_allocations_mib": 27.6,
+  "actions": 308,
+  "model": {
+    "eligible_frames": 105120,
+    "eligible_days": 365,
+    "joint_states": 256,
+    "transition_contexts": 514,
+    "observed_transitions": 12041,
+    "ready": true
+  },
+  "note": "Synthetic benchmark with tracemalloc overhead; not a Raspberry Pi measurement."
+}

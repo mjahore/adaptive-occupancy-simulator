@@ -1,0 +1,6 @@
+alias: Stop occupancy simulation
+sequence:
+  - action: switch.turn_off
+    target:
+      entity_id: switch.adaptive_occupancy_simulator
+mode: single

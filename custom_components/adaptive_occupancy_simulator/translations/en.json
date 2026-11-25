@@ -1,0 +1,88 @@
+{
+  "title": "Adaptive Occupancy Simulator",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Household and lights",
+        "description": "Select individual on/off-capable lights. AOS only reads residents and the alarm. It starts disabled with dry run on.",
+        "data": {
+          "persons": "Residents",
+          "alarm": "Canary / alarm panel",
+          "lights": "Individual lights to simulate"
+        }
+      },
+      "learning": {
+        "title": "History and interlocks",
+        "description": "Select every legacy vacation lighting automation. Unknown historical states are excluded. Keep these automations disabled after migration.",
+        "data": {
+          "legacy_automations": "Legacy vacation automations (all must be off)",
+          "away_states": "Alarm states permitting simulation",
+          "home_states": "Alarm states permitting learning",
+          "retention_days": "AOS archive retention (days)",
+          "import_days": "Recorder import lookback (days)",
+          "minimum_days": "Minimum eligible learning days"
+        }
+      },
+      "model": {
+        "title": "Model and limits",
+        "description": "Learning uses five-minute joint light snapshots. Insufficient history produces no light actions.",
+        "data": {
+          "block_minutes": "Joint bootstrap block (minutes)",
+          "bootstrap_probability": "Bootstrap mixture probability",
+          "minimum_dwell_minutes": "Minimum time between commands (minutes)",
+          "maximum_on_minutes": "Maximum continuous simulated on time (minutes)",
+          "maximum_lights_on": "Maximum simultaneous simulated lights",
+          "manual_override_minutes": "Pause after outside light changes (minutes)",
+          "jitter_seconds": "Maximum joint timing jitter (seconds)"
+        }
+      }
+    },
+    "error": {
+      "invalid_configuration": "Check the selected entities, disjoint alarm states and numerical limits. Use Back to correct earlier steps."
+    },
+    "abort": {
+      "already_configured": "Only one AOS household is supported."
+    }
+  },
+  "options": {
+    "step": {
+      "user": {
+        "title": "Household and lights",
+        "description": "Select individual on/off-capable lights. AOS only reads residents and the alarm. It starts disabled with dry run on.",
+        "data": {
+          "persons": "Residents",
+          "alarm": "Canary / alarm panel",
+          "lights": "Individual lights to simulate"
+        }
+      },
+      "learning": {
+        "title": "History and interlocks",
+        "description": "Select every legacy vacation lighting automation. Unknown historical states are excluded. Keep these automations disabled after migration.",
+        "data": {
+          "legacy_automations": "Legacy vacation automations (all must be off)",
+          "away_states": "Alarm states permitting simulation",
+          "home_states": "Alarm states permitting learning",
+          "retention_days": "AOS archive retention (days)",
+          "import_days": "Recorder import lookback (days)",
+          "minimum_days": "Minimum eligible learning days"
+        }
+      },
+      "model": {
+        "title": "Model and limits",
+        "description": "Learning uses five-minute joint light snapshots. Insufficient history produces no light actions.",
+        "data": {
+          "block_minutes": "Joint bootstrap block (minutes)",
+          "bootstrap_probability": "Bootstrap mixture probability",
+          "minimum_dwell_minutes": "Minimum time between commands (minutes)",
+          "maximum_on_minutes": "Maximum continuous simulated on time (minutes)",
+          "maximum_lights_on": "Maximum simultaneous simulated lights",
+          "manual_override_minutes": "Pause after outside light changes (minutes)",
+          "jitter_seconds": "Maximum joint timing jitter (seconds)"
+        }
+      }
+    },
+    "error": {
+      "invalid_configuration": "Check the selected entities, disjoint alarm states and numerical limits. Use Back to correct earlier steps."
+    }
+  }
+}

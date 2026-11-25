@@ -1,0 +1,6 @@
+alias: Enable occupancy simulation
+sequence:
+  - action: switch.turn_on
+    target:
+      entity_id: switch.adaptive_occupancy_simulator
+mode: single
