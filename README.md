@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/mjahore/adaptive-occupancy-simulator/main/assets/aos-markov-icon.png" width="160" height="160" alt="AOS: a cycle of colorful Markov state nodes with a self-loop" />
+</p>
+
 # Adaptive Occupancy Simulator
 
 AOS is a local Home Assistant custom integration that learns joint household lighting patterns and simulates them during an explicitly enabled Away Mode. It combines solar-conditioned multivariate block bootstrap with a sparse semi-Markov model. It starts **disabled, with dry run on**.
@@ -50,6 +54,13 @@ The enable switch is the Away Mode request, not proof that simulation is running
 - [Dashboard setup](docs/DASHBOARDS.md)
 - [Verification, API sources and limitations](docs/VERIFICATION.md)
 - [Repository publishing](docs/PUBLISHING.md)
+- [Brand artwork and icon display](assets/README.md)
+
+## Integration icon
+
+AOS includes a Markov-chain-inspired icon for light and dark themes, with standard and high-resolution PNGs. Home Assistant 2026.3 and newer load these images from the integration's `brand/` directory. After updating AOS, restart Home Assistant and refresh the browser to pick up the artwork.
+
+**HACS 2.0.5 limitation:** its repository list uses the older central brands catalog and does not display locally bundled custom integration icons. AOS may therefore still have a placeholder in the HACS list even while its icon displays in Home Assistant's Devices & services page and this README. Adding an `icon` field to `hacs.json` is not supported. See [the HACS issue](https://github.com/hacs/integration/issues/5171) and [Home Assistant's local branding documentation](https://developers.home-assistant.io/blog/2026/02/24/brands-proxy-api/).
 
 ## Development
 
@@ -63,4 +74,4 @@ python -m venv .venv
 .venv/bin/ruff format --check .
 ```
 
-Tests use temporary Home Assistant configurations and simulated light services. They do not connect to your home. MIT licensed. Version 0.1.0 is intended for staged household validation, with dry run first.
+Tests use temporary Home Assistant configurations and simulated light services. They do not connect to your home. MIT licensed. Version 0.1.1 is intended for staged household validation, with dry run first.
