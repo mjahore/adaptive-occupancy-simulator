@@ -8,16 +8,26 @@ All settings are available through the integration's Configure/options dialog. T
 |---|---|---|
 | Residents | Must select | Every selected person is an independent safety interlock |
 | Alarm | Must select | Read-only Canary entity; customize for your installation |
-| Lights | Must select | 1–48 individual `light.*` entities; on/off only |
+| Lights and lighting switches | Must select | 1–48 individual `light.*` or `switch.*` entities connected to lighting; on/off only |
 | Legacy automations | Must select any existing vacation lighting automations | Every selected sentinel must be known and off for learning or simulation |
 | Allowed away states | `armed_away` | Simulation requires one of these states |
 | Allowed home states | `disarmed`, `armed_home`, `armed_night` | Learning requires one of these states |
 
 Home and away alarm sets must be disjoint. Unknown, unavailable, arming, disarming, pending and triggered cannot authorize learning or simulation. A named person zone such as `work` counts as away; missing and unavailable entities do not. One resident home plus another unknown stops simulation but does not permit learning.
 
-Do not select light groups that overlap selected individual lights. AOS cannot reliably infer physical group membership across integrations. Keep exterior security lighting under its existing controller unless you explicitly intend to migrate it.
+Select only switches or smart plugs that power lights, not appliances. AOS's own control switches are excluded even if renamed. Scenes, scripts, fans and other entity domains are not supported as lighting targets.
+
+Do not select light groups that overlap selected individual lights, or both a switch and a light wrapper controlling the same physical circuit. AOS cannot reliably infer physical group membership or duplicate circuits across integrations. Keep exterior security lighting under its existing controller unless you explicitly intend to migrate it.
 
 Removing a legacy sentinel explicitly removes that guard from subsequent imports. Keep your legacy entities present and disabled through migration; missing historical states are excluded, not assumed off. Enabled-state history is a conservative vacation marker, not a record of when each automation actually issued a light command. If an automation was enabled all year, its entire retained history is excluded.
+
+## Adding lighting switches
+
+Update to AOS 0.1.2 or newer in HACS and restart Home Assistant. Open **Settings → Devices & services → Adaptive Occupancy Simulator → Configure**, then add the desired `switch.*` entities under **Lights and lighting switches to simulate**. Complete the remaining settings and save. Existing light-only selections remain supported, and the away/return scripts require no changes for this update.
+
+Changing the ordered selection clears incompatible joint-state training frames and the daily plan, resets AOS to disabled with dry run on, and imports retained Recorder history for the new selection. Previously purged history cannot be recovered. Review Learning and the preview before explicitly enabling again; newly selected switches with missing history may delay readiness. Ensure Recorder records these switches. Existing historical legacy exclusions continue to apply.
+
+Both domains use the same on/off history, model and safeguards. AOS calls `light.turn_on/off` for lights and `switch.turn_on/off` for switches. All limits count selected entities, not bulbs: a lighting relay powering several lamps counts as one target. Returning home cancels pending commands for both types without changing their current states.
 
 ## Learning and model limits
 
@@ -30,7 +40,7 @@ Removing a legacy sentinel explicitly removes that guard from subsequent imports
 | Bootstrap probability | 0.80 | 0–1 |
 | Minimum command dwell minutes | 10 | 5–60 |
 | Maximum continuous simulated on minutes | 180 | 15–720 |
-| Maximum simultaneous lights | 8 | 1–48 |
+| Maximum simultaneous lighting targets | 8 | 1–48 |
 | Manual override pause minutes | 60 | 5–1440 |
 | Joint timing jitter seconds | 45 | 0–120 |
 

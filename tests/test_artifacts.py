@@ -7,11 +7,14 @@ import yaml
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.template import Template
 
+from custom_components.adaptive_occupancy_simulator.const import VERSION
+
 
 def test_repository_metadata():
     manifest = json.loads(Path("custom_components/adaptive_occupancy_simulator/manifest.json").read_text())
     assert manifest["config_flow"] and manifest["single_config_entry"]
     assert manifest["requirements"] == []
+    assert manifest["version"] == VERSION
     assert len(list(Path("custom_components").glob("*/manifest.json"))) == 1
     assert json.loads(Path("hacs.json").read_text())["homeassistant"] == "2026.7.2"
     for path in Path("examples").glob("*.yaml"):

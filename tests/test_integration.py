@@ -60,9 +60,18 @@ async def test_full_setup_options_reload_and_unload(installed, config):
     second = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
     assert second["type"] == "abort"
     options = await hass.config_entries.options.async_init(entry.entry_id)
+    lighting_selector = next(
+        value for key, value in options["data_schema"].schema.items() if key.schema == "lights"
+    )
+    assert set(lighting_selector.config["filter"][0]["domain"]) == {"light", "switch"}
+    assert "switch.adaptive_occupancy_simulator" in lighting_selector.config["exclude_entities"]
+    updated_lights = ["light.kitchen", "switch.table_lamp"]
+    hass.states.async_set("switch.table_lamp", "off")
     for step in ("user", "learning", "model"):
         keys = [key.schema for key in schema(config, step).schema]
         data = {key: config[key] for key in keys}
+        if step == "user":
+            data["lights"] = updated_lights
         if step == "model":
             data["maximum_lights_on"] = 1
         options = await hass.config_entries.options.async_configure(options["flow_id"], data)
@@ -70,13 +79,25 @@ async def test_full_setup_options_reload_and_unload(installed, config):
     await hass.async_block_till_done()
     assert entry.runtime_data is not runtime
     assert entry.runtime_data.config["maximum_lights_on"] == 1
+    assert entry.runtime_data.config["lights"] == updated_lights
     assert entry.runtime_data.dry_run
     reloaded = entry.runtime_data
     assert await hass.config_entries.async_unload(entry.entry_id)
     assert reloaded.closed
 
 
-async def test_real_recorder_query(installed, config):
+async def test_native_setup_with_only_lighting_switches(installed, config):
+    hass = installed
+    config = {**config, "lights": ["switch.table_lamp"]}
+    hass.states.async_set("switch.table_lamp", "off")
+    entry = await create_entry(hass, config)
+    assert entry.runtime_data.config["lights"] == ["switch.table_lamp"]
+    assert entry.runtime_data.dry_run and not entry.runtime_data.enabled
+    assert await hass.config_entries.async_unload(entry.entry_id)
+
+
+@pytest.mark.parametrize("entity_id", ["light.kitchen", "switch.table_lamp"])
+async def test_real_recorder_query(installed, config, entity_id):
     from functools import partial
 
     from homeassistant.components.recorder.history import get_significant_states
@@ -87,7 +108,7 @@ async def test_real_recorder_query(installed, config):
     await recorder.async_block_till_done()
     await hass.async_add_executor_job(recorder.block_till_done)
     start = datetime.now(UTC) - timedelta(seconds=1)
-    hass.states.async_set("light.kitchen", "on")
+    hass.states.async_set(entity_id, "on")
     await hass.async_block_till_done()
     from homeassistant.components.recorder.tasks import CommitTask
 
@@ -99,13 +120,13 @@ async def test_real_recorder_query(installed, config):
             hass,
             start,
             datetime.now(UTC) + timedelta(seconds=1),
-            ["light.kitchen"],
+            [entity_id],
             include_start_time_state=True,
             significant_changes_only=False,
             minimal_response=False,
             no_attributes=True,
         )
     )
-    assert raw.get("light.kitchen"), raw
-    assert raw["light.kitchen"][-1].state == "on"
-    assert raw["light.kitchen"][-1].last_updated.tzinfo
+    assert raw.get(entity_id), raw
+    assert raw[entity_id][-1].state == "on"
+    assert raw[entity_id][-1].last_updated.tzinfo

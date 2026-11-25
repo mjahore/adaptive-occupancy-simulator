@@ -3,6 +3,8 @@
 from types import SimpleNamespace
 
 import pytest
+from homeassistant import loader
+from homeassistant.bootstrap import async_load_base_functionality
 from homeassistant.config_entries import ConfigEntries
 from homeassistant.core import HomeAssistant
 
@@ -30,6 +32,8 @@ async def hass(tmp_path):
     instance.config.latitude = 40.7
     instance.config.longitude = -74.0
     instance.config_entries = ConfigEntries(instance, {})
+    loader.async_setup(instance)
+    assert await async_load_base_functionality(instance)
     yield instance
     await instance.async_stop(force=True)
 

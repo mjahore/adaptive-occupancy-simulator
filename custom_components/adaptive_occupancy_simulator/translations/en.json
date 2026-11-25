@@ -4,11 +4,11 @@
     "step": {
       "user": {
         "title": "Household and lights",
-        "description": "Select individual on/off-capable lights. AOS only reads residents and the alarm. It starts disabled with dry run on.",
+        "description": "Select lights and switches or smart plugs that power lights. AOS only reads residents and the alarm. It starts disabled with dry run on.",
         "data": {
           "persons": "Residents",
           "alarm": "Canary / alarm panel",
-          "lights": "Individual lights to simulate"
+          "lights": "Lights and lighting switches to simulate"
         }
       },
       "learning": {
@@ -31,7 +31,7 @@
           "bootstrap_probability": "Bootstrap mixture probability",
           "minimum_dwell_minutes": "Minimum time between commands (minutes)",
           "maximum_on_minutes": "Maximum continuous simulated on time (minutes)",
-          "maximum_lights_on": "Maximum simultaneous simulated lights",
+          "maximum_lights_on": "Maximum simultaneous lighting targets",
           "manual_override_minutes": "Pause after outside light changes (minutes)",
           "jitter_seconds": "Maximum joint timing jitter (seconds)"
         }
@@ -48,11 +48,11 @@
     "step": {
       "user": {
         "title": "Household and lights",
-        "description": "Select individual on/off-capable lights. AOS only reads residents and the alarm. It starts disabled with dry run on.",
+        "description": "Select lights and switches or smart plugs that power lights. AOS only reads residents and the alarm. It starts disabled with dry run on.",
         "data": {
           "persons": "Residents",
           "alarm": "Canary / alarm panel",
-          "lights": "Individual lights to simulate"
+          "lights": "Lights and lighting switches to simulate"
         }
       },
       "learning": {
@@ -75,7 +75,7 @@
           "bootstrap_probability": "Bootstrap mixture probability",
           "minimum_dwell_minutes": "Minimum time between commands (minutes)",
           "maximum_on_minutes": "Maximum continuous simulated on time (minutes)",
-          "maximum_lights_on": "Maximum simultaneous simulated lights",
+          "maximum_lights_on": "Maximum simultaneous lighting targets",
           "manual_override_minutes": "Pause after outside light changes (minutes)",
           "jitter_seconds": "Maximum joint timing jitter (seconds)"
         }

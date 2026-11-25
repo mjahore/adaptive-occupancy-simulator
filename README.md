@@ -15,7 +15,7 @@ AOS never arms your alarm, changes HVAC, locks a door or sends a notification. Y
 1. Back up Home Assistant and your existing Away Mode scripts.
 2. Copy `custom_components/adaptive_occupancy_simulator` into `/config/custom_components/` and restart Home Assistant. For HACS, add `https://github.com/mjahore/adaptive-occupancy-simulator` as a Custom repository with type Integration, download AOS and restart HA.
 3. Open **Settings → Devices & services → Add integration → Adaptive Occupancy Simulator**.
-4. Select residents, Canary and the individual lights. Keep exterior/security lighting separate. Confirm every legacy vacation lighting automation is selected as a historical sentinel.
+4. Select residents, Canary and the individual lights or lighting switches (`light.*` and `switch.*`, including smart plugs powering lamps). Keep exterior/security lighting separate. Confirm every legacy vacation lighting automation is selected as a historical sentinel.
 5. Keep dry run on. Let the automatic Recorder import finish, review Learning and History, and follow the [migration guide](docs/MIGRATION.md) before editing the production scripts.
 6. Add the [seven-view dashboard](dashboards/aos.yaml) using the [dashboard instructions](docs/DASHBOARDS.md).
 
@@ -24,7 +24,7 @@ Configuration is native: no integration YAML, AppDaemon, MQTT, cloud account, cu
 ## What is included
 
 - Native config/options flows, one device, two switches, seven sensors, two binary sensors and five buttons.
-- Configurable people, alarm mappings, lights, legacy sentinels, history retention and model limits.
+- Configurable people, alarm mappings, lights and lighting switches, legacy sentinels, history retention and model limits.
 - Selected-entity Recorder import through HA's history API, in daily executor jobs; no direct access to the Recorder database.
 - A separate compact SQLite archive, retained for 365 days by default. Explicit periods and enabled legacy automation history are excluded from training.
 - Joint-light block sampling conditioned on civil time, weekday/weekend and solar elevation; empirical joint-state transitions and dwell distributions as a fallback.
@@ -45,6 +45,8 @@ Configuration is native: no integration YAML, AppDaemon, MQTT, cloud account, cu
 | Insufficient history | No invented fallback lighting |
 
 The enable switch is the Away Mode request, not proof that simulation is running. Read the Status and Safe to simulate entities. Dry-run mode can change only while AOS is stopped. A configuration change resets authorization to disabled/dry run.
+
+Lighting switches share the same history, joint model, limits, overrides and return-home cancellation as lights. Select only switches connected to lighting, and select each physical circuit once. To add switches after updating, open AOS's Configure dialog; changing the selection rebuilds the learning set from retained Recorder history. See [adding lighting switches](docs/CONFIGURATION.md#adding-lighting-switches).
 
 ## Documentation
 
@@ -74,4 +76,4 @@ python -m venv .venv
 .venv/bin/ruff format --check .
 ```
 
-Tests use temporary Home Assistant configurations and simulated light services. They do not connect to your home. MIT licensed. Version 0.1.1 is intended for staged household validation, with dry run first.
+Tests use temporary Home Assistant configurations and simulated light and switch services. They do not connect to your home. MIT licensed. Version 0.1.2 is intended for staged household validation, with dry run first.

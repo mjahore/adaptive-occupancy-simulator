@@ -1,23 +1,24 @@
-AOS 0.1.0 validation record
+AOS 0.1.2 validation record
 Date: 2026-11-25 (America/New_York client date)
 Execution environment: macOS ARM64
 Python: 3.14.6
 Home Assistant Core: 2026.7.2
 
 pytest -q
-43 passed, 5 warnings in 1.49s
+60 passed, 5 warnings in 0.60s
 
 ruff check .
 All checks passed!
 
 ruff format --check .
-27 files already formatted
+30 files already formatted
 
 Warnings: 5 upstream dependency deprecations (aiohttp subclass and backoff asyncio introspection).
 The suite includes actual HA config/options/platform lifecycle, event/service dispatch,
-SQLite Recorder history, HA template rendering and isolated behavioral tests.
+SQLite Recorder light and switch history, mixed-target dispatch/cancellation,
+own-control exclusion even after renaming, HA template rendering and isolated behavioral tests.
 No physical home device was contacted. See VERIFICATION.md for target acceptance gaps.
 
 Hosted HACS/hassfest workflows: see GitHub Actions for the current commit.
-HAOS Raspberry Pi 4 and physical Canary/lights: not available for validation.
+HAOS Raspberry Pi 4 and physical Canary/lights/switches: not available for validation.
 Frontend browser rendering: not performed; all dashboard Markdown templates rendered with HA.

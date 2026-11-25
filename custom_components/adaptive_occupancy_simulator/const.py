@@ -2,7 +2,8 @@
 
 DOMAIN = "adaptive_occupancy_simulator"
 NAME = "Adaptive Occupancy Simulator"
-VERSION = "0.1.0"
+VERSION = "0.1.2"
+LIGHTING_DOMAINS = ("light", "switch")
 STEP_SECONDS = 300
 MAX_LIGHTS = 48
 LEGACY_AUTOMATIONS = []
@@ -32,16 +33,25 @@ def settings(data, options=None):
     return {**DEFAULTS, **data, **(options or {})}
 
 
-def validate(config):
+def validate(config, *, forbidden_entities=()):
     """Reject ambiguous interlocks and unsafe model dimensions."""
-    for key, domain in (("persons", "person"), ("lights", "light"), ("legacy_automations", "automation")):
+    for key, domains in (
+        ("persons", ("person",)),
+        ("lights", LIGHTING_DOMAINS),
+        ("legacy_automations", ("automation",)),
+    ):
         items = config[key]
         if not isinstance(items, list) or len(items) != len(set(items)):
             raise ValueError(f"Invalid {key}")
-        if any(not isinstance(e, str) or not e.startswith(domain + ".") for e in items):
+        if any(
+            not isinstance(e, str) or e.partition(".")[0] not in domains or not e.partition(".")[2]
+            for e in items
+        ):
             raise ValueError(f"Invalid {key}")
+    if set(config["lights"]) & set(forbidden_entities):
+        raise ValueError("AOS controls cannot be simulated lighting targets")
     if not config["persons"] or not 1 <= len(config["lights"]) <= MAX_LIGHTS:
-        raise ValueError("Select residents and 1–48 individual lights")
+        raise ValueError("Select residents and 1–48 lights or lighting switches")
     if not config["alarm"].startswith("alarm_control_panel."):
         raise ValueError("Select an alarm control panel")
     if (

@@ -1,9 +1,20 @@
 """Push-updated entities sharing one AOS device."""
 
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity import Entity
 
 from .const import DOMAIN, NAME, VERSION
+
+
+def own_entities(hass):
+    """Exclude AOS's controls even when their entity IDs have been renamed."""
+    return [entity_id for entity_id, entry in er.async_get(hass).entities.items() if entry.platform == DOMAIN]
+
+
+def is_own_entity(hass, entity_id):
+    entry = er.async_get(hass).async_get(entity_id)
+    return entry is not None and entry.platform == DOMAIN
 
 
 class AOSEntity(Entity):

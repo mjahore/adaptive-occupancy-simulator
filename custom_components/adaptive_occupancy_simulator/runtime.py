@@ -19,7 +19,8 @@ from homeassistant.helpers.event import async_track_point_in_utc_time, async_tra
 from homeassistant.helpers.storage import Store
 
 from .archive import Archive
-from .const import DOMAIN, STEP_SECONDS, occupancy_reason, settings, validate
+from .const import DOMAIN, LIGHTING_DOMAINS, STEP_SECONDS, occupancy_reason, settings, validate
+from .entity import is_own_entity, own_entities
 from .history import import_recorder
 from .model import Action, Frame, HybridModel, constrain
 
@@ -33,7 +34,7 @@ class Runtime:
         self.hass = hass
         self.entry = entry
         self.config = settings(entry.data, entry.options)
-        validate(self.config)
+        validate(self.config, forbidden_entities=own_entities(hass))
         self.tz = ZoneInfo(hass.config.time_zone)
         self.observer = Observer(hass.config.latitude, hass.config.longitude, hass.config.elevation)
         identity = {
@@ -363,6 +364,9 @@ class Runtime:
         entity = action.entity_id
         if entity not in self.config["lights"]:
             raise HomeAssistantError("Schedule contains an unconfigured entity")
+        domain = entity.partition(".")[0]
+        if domain not in LIGHTING_DOMAINS or is_own_entity(self.hass, entity):
+            raise HomeAssistantError("Schedule contains an unsupported lighting target")
         if self.overrides.get(entity, 0) > now:
             self.record("skipped_override", action)
             return
@@ -399,7 +403,7 @@ class Runtime:
         if self.closed or token != self.generation or self.reason() or self.dry_run:
             return
         await self.hass.services.async_call(
-            "light",
+            domain,
             "turn_on" if action.on else "turn_off",
             {"entity_id": entity},
             blocking=True,

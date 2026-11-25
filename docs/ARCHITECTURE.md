@@ -2,6 +2,8 @@
 
 AOS separates historical eligibility, statistical planning and physical execution. A plan can exist while simulation is disabled. Only the execution layer can call lights, and it rechecks the current household state immediately before dispatch.
 
+Lighting targets are `light.*` and `switch.*` entities with on/off states. They share the existing ordered `lights` configuration key and joint bit mask, so existing light-only configurations need no data migration. The executor checks the allowed domain and rejects AOS's own registry entries before calling that domain's `turn_on` or `turn_off` action. The same learning, availability, override and limit checks apply to both types.
+
 ## Historical eligibility
 
 The Recorder adapter calls `get_significant_states` for selected entities with start-state inclusion, all state changes, uncompressed output and no attributes. Calls execute in Recorder's own database executor, in one-day chunks. The adapter never opens Recorder's SQLite file or depends on its SQL tables.
@@ -38,7 +40,7 @@ The planner enforces minimum dwell, maximum on time and a simultaneous-light cap
 
 One pending timer schedules the next action or owned-light timeout. A generation token invalidates callbacks during cancellation, reload and regeneration. The daily plan is saved separately from the small runtime record to limit storage writes. The consumed plan cursor is saved before command dispatch; safety gates are checked again after this storage await. A crash can therefore miss a command rather than replay one. Startup never catches up past plan events.
 
-A presence callback immediately disables AOS when any person is home and cancels pending work before scheduling persistence. Other unsafe inputs suspend scheduling without clearing the explicit Away Mode request. Unknown-to-away recovery can resume only future events under all gates. No stop path calls `light.turn_off`, restores a scene or resets brightness.
+A presence callback immediately disables AOS when any person is home and cancels pending work before scheduling persistence. Other unsafe inputs suspend scheduling without clearing the explicit Away Mode request. Unknown-to-away recovery can resume only future events under all gates. No stop path calls `light.turn_off` or `switch.turn_off`, restores a scene or resets brightness.
 
 The HA event loop cannot retract a service call already handed to a light integration. Physical-device acknowledgement, Zigbee/Z-Wave/network delays and external automations are outside AOS's transaction boundary. Return cancellation promises no subsequent AOS commands after the event is processed, not recall of a previously transmitted command.
 

@@ -4,7 +4,7 @@ The integration targets **Home Assistant Core 2026.7.2 / Python 3.14.6**. Develo
 
 ## Automated verification
 
-The test suite exercises actual Home Assistant Core objects, native config and options flows, entity platforms, storage, event dispatch, service calls, template rendering and SQLite Recorder. Light services are simulated; no real household device is contacted.
+The test suite exercises actual Home Assistant Core objects, native config and options flows, entity platforms, storage, event dispatch, service calls, template rendering and SQLite Recorder. Light and switch services are simulated; no real household device is contacted.
 
 Covered behavior includes:
 
@@ -14,13 +14,14 @@ Covered behavior includes:
 - Manual overrides, own-action context recognition, concurrent caps including unacknowledged commands, and a runtime maximum-on timer after the daily plan ends.
 - Service failures suspend subsequent execution; unload cleanup is idempotent.
 - Native installation, duplicate-entry prevention, options reload and platform unload against HA 2026.7.2.
+- Mixed light/switch selection and domain-correct dispatch, dry-run switch commands, mixed-target return cancellation, switch overrides and maximum-on timers, and shared concurrent limits. AOS's own controls are rejected even when renamed.
 - A committed real SQLite Recorder event read through the selected history API; chunked adapter calls use the verified flags and preserve five-minute boundary continuity.
 - Historical unknown-start states, short contaminated intervals, old AOS sessions, explicit exclusions, retention and changed light-order invalidation.
 - Deterministic joint-block sampling, sparse semi-Markov transitions, censored gaps, cold-start refusal and output limits.
 - Both DST day lengths with unique UTC slots.
 - Seven dashboard views, template rendering with missing/populated entities, script schema validation and minimal activation/deactivation examples.
 
-`TEST_RESULTS.txt` records the final test/lint run. Dependency deprecation warnings are reported without treating them as integration failures. HACS/hassfest hosted actions are configured but have not run against a published repository.
+`TEST_RESULTS.txt` records the final test/lint run. Dependency deprecation warnings are reported without treating them as integration failures. Hosted tests, HACS validation and hassfest ran successfully for the published 0.1.1 repository; consult [GitHub Actions](https://github.com/mjahore/adaptive-occupancy-simulator/actions) for each subsequent commit's result.
 
 ## API verification sources
 
@@ -34,6 +35,8 @@ Pinned source and the installed package take precedence over current documentati
 | Recorder executor | [Pinned Recorder core](https://github.com/home-assistant/core/blob/2026.7.2/homeassistant/components/recorder/core.py) |
 | State subscriptions and cancellable UTC timers | [Pinned event helpers](https://github.com/home-assistant/core/blob/2026.7.2/homeassistant/helpers/event.py) |
 | Native config/options flow and runtime data | [Pinned config entries](https://github.com/home-assistant/core/blob/2026.7.2/homeassistant/config_entries.py), exercised by lifecycle tests |
+| Mixed-domain entity picker and own-control exclusion | [Pinned selector](https://github.com/home-assistant/core/blob/2026.7.2/homeassistant/helpers/selector.py) and [entity registry](https://github.com/home-assistant/core/blob/2026.7.2/homeassistant/helpers/entity_registry.py), inspected locally and exercised by options tests |
+| Switch on/off states and actions | [Official switch documentation](https://www.home-assistant.io/integrations/switch/), domain dispatch exercised on the target Core |
 | Store and entity APIs | [Pinned storage helper](https://github.com/home-assistant/core/blob/2026.7.2/homeassistant/helpers/storage.py), exercised by persistence/platform tests |
 | Astral dependency and HA coordinates | [Pinned project dependencies](https://github.com/home-assistant/core/blob/2026.7.2/pyproject.toml), [pinned sun helpers](https://github.com/home-assistant/core/blob/2026.7.2/homeassistant/helpers/sun.py) |
 | Recorder defaults and SQLite behavior | [Official Recorder documentation](https://www.home-assistant.io/integrations/recorder/) |
@@ -63,7 +66,7 @@ The schedule file is written once per plan generation; consumed cursors and mode
 ## Deliberate limitations
 
 - This is lighting-pattern simulation, not a proven burglary deterrent or a security-system replacement. No effectiveness percentage is claimed.
-- On/off only; no brightness, color temperature, color, transitions, curtains, media players or physical occupancy sensors. Five-minute sampling misses shorter light activity.
+- On/off only for `light.*` and lighting `switch.*` entities; no brightness, color temperature, color, transitions, curtains, media players, scenes, scripts or physical occupancy sensors. Five-minute sampling misses shorter light activity.
 - Sparse or seasonally unrepresentative data can yield empty or repetitive schedules. Day counting does not guarantee full-day coverage. Unknown/absent history is excluded; it is never fabricated.
 - Solar conditioning uses elevation plus local time and day type. There is no separate learned sunset-offset regression, holiday calendar or weather dependence. Semi-Markov fallback may pool across solar/day contexts and truncates empirical dwell at planning-block boundaries.
 - Model constraints and manual overrides alter the sampled distribution. No held-out statistical calibration or household realism study has been performed.
@@ -71,5 +74,5 @@ The schedule file is written once per plan generation; consumed cursors and mode
 - An unavailable device or competing automation can prevent a desired state. AOS does not verify physical lamp illumination. Context-losing devices can cause false manual overrides.
 - Retention cannot recover purged Recorder data. Legacy automations with missing history reduce usable evidence; always-enabled legacy automations exclude their entire enabled period.
 - Daily model fitting does not reroll an existing plan automatically. Use Regenerate explicitly; new local days generate new plans. Startup imports retained history, while daily collection primarily uses AOS's own sampler.
-- Single household instance, up to 48 individual lights, English strings, and bounded schedule/activity previews. Explicit exclusions have no deletion UI in this release.
-- Pi 4/HAOS operation, actual Canary behavior, frontend rendering and hosted HACS/hassfest checks remain unverified until performed on the target/published repository.
+- Single household instance, up to 48 individual lights and lighting switches in total, English strings, and bounded schedule/activity previews. Explicit exclusions have no deletion UI in this release.
+- Pi 4/HAOS operation, actual Canary and lighting-device behavior, and frontend rendering remain unverified until performed on the target household.

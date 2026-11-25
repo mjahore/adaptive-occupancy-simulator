@@ -5,10 +5,11 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
-from .const import DEFAULTS, DOMAIN, NAME, settings, validate
+from .const import DEFAULTS, DOMAIN, LIGHTING_DOMAINS, NAME, settings, validate
+from .entity import own_entities
 
 
-def schema(values, step):
+def schema(values, step, *, excluded_entities=()):
     fields = {}
     groups = {
         "user": ("persons", "alarm", "lights"),
@@ -33,7 +34,7 @@ def schema(values, step):
     domains = {
         "persons": "person",
         "alarm": "alarm_control_panel",
-        "lights": "light",
+        "lights": list(LIGHTING_DOMAINS),
         "legacy_automations": "automation",
     }
     bounds = {
@@ -53,7 +54,11 @@ def schema(values, step):
         marker = vol.Required(key, default=value)
         if key in domains:
             fields[marker] = selector.EntitySelector(
-                selector.EntitySelectorConfig(domain=domains[key], multiple=key != "alarm")
+                selector.EntitySelectorConfig(
+                    filter={"domain": domains[key]},
+                    multiple=key != "alarm",
+                    exclude_entities=list(excluded_entities) if key == "lights" else [],
+                )
             )
         elif key.endswith("states"):
             fields[marker] = selector.SelectSelector(
@@ -87,17 +92,22 @@ class FlowSteps:
 
     async def _step(self, step, user_input, next_step=None):
         errors = {}
+        excluded = own_entities(self.hass)
         if user_input is not None:
             self.collected.update(normalize(user_input))
             try:
-                validate(self.collected)
+                validate(self.collected, forbidden_entities=excluded)
             except ValueError, TypeError, KeyError:
                 errors["base"] = "invalid_configuration"
             else:
                 if next_step:
                     return await getattr(self, "async_step_" + next_step)()
                 return self.async_create_entry(title=self.entry_title, data=self.collected)
-        return self.async_show_form(step_id=step, data_schema=schema(self.collected, step), errors=errors)
+        return self.async_show_form(
+            step_id=step,
+            data_schema=schema(self.collected, step, excluded_entities=excluded),
+            errors=errors,
+        )
 
     async def async_step_learning(self, user_input=None):
         return await self._step("learning", user_input, "model")
