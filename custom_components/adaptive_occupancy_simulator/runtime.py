@@ -55,6 +55,7 @@ class Runtime:
         self.error = ""
         self.model = None
         self.summary = {}
+        self.import_report = {}
         self.plan = []
         self.plan_day = ""
         self.seed = random.SystemRandom().randrange(2**53)
@@ -204,6 +205,12 @@ class Runtime:
         mask = sum(1 << i for i, entity in enumerate(self.config["lights"]) if states.get(entity) == "on")
         minute, weekend, solar = self.feature(stamp)
         self.sample = Frame(stamp, mask, minute, weekend, solar)
+        self.sample_known = sum(
+            1 << i for i, e in enumerate(self.config["lights"]) if states.get(e) in {"on", "off"}
+        )
+        self.sample_baseline_ok = not occupancy_reason(
+            states, self.config, learning=True, enabled=self.enabled
+        )
 
     def _learning_reason(self):
         states = self.states()
@@ -211,6 +218,17 @@ class Runtime:
         if not why and any(states.get(e) not in {"on", "off"} for e in self.config["lights"]):
             why = "light_unknown"
         return why
+
+    @property
+    def learning_status(self):
+        if self.busy:
+            return "training"
+        reason = self._learning_reason()
+        if reason == "light_unknown" and any(
+            self.states().get(e) in {"on", "off"} for e in self.config["lights"]
+        ):
+            return "learning_partial"
+        return reason or "learning"
 
     def _schedule_sample(self):
         next_ts = (int(self.now().timestamp()) // STEP_SECONDS + 1) * STEP_SECONDS
@@ -224,6 +242,7 @@ class Runtime:
         self.sample_timer = None
         why = self.tainted or self._learning_reason()
         old = self.sample
+        known, baseline_ok = self.sample_known, self.sample_baseline_ok
         if old and int(now.timestamp()) - old.ts >= STEP_SECONDS * 2:
             why = "sampling_gap"
         # Rotate before awaiting disk I/O so concurrent events taint the NEW slot.
@@ -231,7 +250,17 @@ class Runtime:
         self.tainted = self._learning_reason()
         self._schedule_sample()
         if old:
-            frame = Frame(old.ts, old.mask, old.minute, old.weekend, old.elevation, not bool(why), why)
+            frame = Frame(
+                old.ts,
+                old.mask,
+                old.minute,
+                old.weekend,
+                old.elevation,
+                not bool(why),
+                why,
+                known,
+                baseline_ok and bool(known) and why not in {"startup_partial_interval", "sampling_gap"},
+            )
             try:
                 await self.hass.async_add_executor_job(partial(self.archive.write, [frame], replace=True))
             except Exception as err:
@@ -248,6 +277,13 @@ class Runtime:
         if self.closed:
             return
         self.tainted = self.tainted or self._learning_reason()
+        states = self.states()
+        self.sample_known &= sum(
+            1 << i for i, e in enumerate(self.config["lights"]) if states.get(e) in {"on", "off"}
+        )
+        self.sample_baseline_ok = self.sample_baseline_ok and not occupancy_reason(
+            states, self.config, learning=True, enabled=self.enabled
+        )
         if event:
             entity = event.data["entity_id"]
             new = event.data.get("new_state")
@@ -495,6 +531,7 @@ class Runtime:
                         self.feature,
                         lambda: not self.closed,
                         self.aos_entity,
+                        self.import_report,
                     )
                 if self.closed:
                     return

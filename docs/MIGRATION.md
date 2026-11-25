@@ -32,3 +32,11 @@ Stop AOS before switching dry run off. Re-enable only when ready for supervised 
 ## Roll back
 
 Stop AOS first; current light states remain unchanged. Restore your backed-up script bodies and legacy scheduler behavior. Let the original away lifecycle re-enable the old lighting at the next intended activation. Keep AOS disabled or remove it. Do not run the old vacation controller and AOS live at the same time.
+
+## Upgrade from 0.1.x to 0.2.0
+
+No further away/return script changes are required if you already completed the migration above. Keep legacy automation entities present and off so historical guards remain meaningful. Do not delete their exclusions to increase the training count.
+
+Update through HACS and restart HA. The archive schema upgrades automatically, preserving complete history and exclusions. Use Import history to recover known-device evidence from retained intervals previously rejected as `light_unknown`; imported history and current live sampling now support partial masks. `legacy_unknown` remains excluded. Existing configuration and live/dry-run authorization are preserved when configuration is unchanged; updating does not itself enable AOS.
+
+Replace your pasted dashboard configuration with the new `dashboards/aos.yaml`, then refresh the frontend. The old built-in-card layout is available as `dashboards/aos-classic.yaml`, with the regenerate button reference corrected. See [dashboard instructions](DASHBOARDS.md). If reverting to 0.1.x, also restore the pre-upgrade AOS storage backup: the older archive reader does not understand the added columns. Do not restore or delete Recorder's database for this purpose.

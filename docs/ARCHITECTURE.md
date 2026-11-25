@@ -8,9 +8,9 @@ Lighting targets are `light.*` and `switch.*` entities with on/off states. They 
 
 The Recorder adapter calls `get_significant_states` for selected entities with start-state inclusion, all state changes, uncompressed output and no attributes. Calls execute in Recorder's own database executor, in one-day chunks. The adapter never opens Recorder's SQLite file or depends on its SQL tables.
 
-For each five-minute UTC interval, a chronological sweep maintains the selected entities' states. A frame is usable only when at least one person is home, every person is known, the alarm permits learning, every legacy sentinel is off, all lights have known on/off state, and any known AOS enable switch is off. Any disqualifying transition inside an interval rejects the whole interval. Missing start states reject history until a known state appears.
+For each five-minute UTC interval, a chronological sweep maintains the selected entities' states. A complete joint frame is usable only when at least one person is home, every person is known, the alarm permits learning, every legacy sentinel is off, all lights have known on/off state, and any known AOS enable switch is off. Any occupancy, alarm, legacy or AOS-session contamination rejects the whole interval. A light becoming unknown removes that light from the partial-observation mask for the entire interval, while known neighbors remain usable. Missing light start states withhold that device until its state is known; missing guard states still reject the whole interval.
 
-Each stored frame contains UTC timestamp, joint-light bit mask, local minute, weekday/weekend, solar elevation, eligibility and rejection reason. AOS sessions and manual exclusions form a second interval filter. Local sampling taints intervals on interlock changes and writes a startup-gap rejection; it never bridges a restart with fabricated occupancy. Live observations take precedence over later imports.
+Each stored frame contains UTC timestamp, joint-light bit mask, local minute, weekday/weekend, solar elevation, eligibility, rejection reason, a per-device known mask and partial-baseline eligibility. The archive also tracks live/import/legacy provenance. AOS sessions and manual exclusions form a second interval filter. Local sampling taints intervals on interlock changes and writes a startup-gap rejection; it never bridges a restart with fabricated occupancy. Live observations take precedence over later imports.
 
 AOS's separate SQLite archive uses parameterized transactions on HA's general executor. At 365 days, five-minute sampling produces at most about 105,120 rows, independent of light count. Up to 48 lights fit in one integer mask. The archive is pruned during daily training. No neural libraries or dense state matrix are used.
 
@@ -25,6 +25,16 @@ Eligible donors receive weights proportional to:
 `exp(−civil_minute_distance / 60 − solar_elevation_difference / 10 − age_seconds / (180 × 86400))`
 
 The whole sequence of joint room masks is copied. Rooms are not sampled independently, preserving empirical within-block overlap and transitions. One seeded random generator controls sampling and another deterministic seeded pass applies constraints. Solar elevation is calculated with Astral from HA's latitude, longitude and elevation; it does not require historical `sun.sun` records.
+
+## Partial-history provisional baseline
+
+Qualified partial observations share the same occupancy, alarm, legacy and AOS-session gates as complete observations. For each target the model counts local dates with known on/off evidence. A provisional plan can command only targets reaching the configured minimum (default seven dates); the read-only explorer lowers this to two dates without authorizing execution. Counts do not imply full-day coverage.
+
+The baseline copies contiguous partial joint blocks using the same time/day-type/solar matching and age weights. Each sampled slot carries a values mask and a known mask. Unknown bits produce no commands; they never become off. Previously planned on states are conservatively retained when checking concurrent caps through unknown slots. The executor's maximum-on timer remains independent and subject to all interlocks.
+
+Once enough complete joint dates exist, the full bootstrap/semi-Markov model takes priority; partial blocks fill only otherwise unsupported slots. Daily retraining refines the evidence without automatically rerolling an existing plan. The original `eligible_frames` and `eligible_days` diagnostics count complete joint frames; `partial_frames`, `baseline_ready_targets` and per-entity dates explain additional evidence. `learning_partial` means current known devices can learn.
+
+On upgrade, SQLite adds the known mask, baseline eligibility and provenance columns without discarding existing complete observations or exclusions. A fresh Recorder scan can enrich old `light_unknown` rows and update prior imported rows; it cannot replace live rows or legacy rows marked complete/unsafe. No data is recovered after Recorder has purged it.
 
 ## Sparse semi-Markov fallback
 
@@ -49,3 +59,11 @@ The HA event loop cannot retract a service call already handed to a light integr
 Startup imports retained Recorder history and fits the model; daily training uses the compact local archive. Additional imports are explicit. Source observations, current schedule and seed survive reloads; fitted tables are rebuilt. All SQLite and model fitting/planning work runs off the event loop. Interlock checks and cancellation remain event-driven.
 
 The Pi 4 resource envelope is bounded structurally, but local benchmark measurements are not Pi benchmarks. Heavy Recorder days may still be expensive even with daily chunks. Keep selection limited to the actual simulation lights and required sentinels. Do not increase Recorder-wide retention to 365 days merely to give AOS a seasonal archive.
+
+## Read-only visual API
+
+A bundled JavaScript custom card fetches an authenticated, administrator-only WebSocket snapshot. A static route serves only the card code, never household data. Expensive history summaries, matrix aggregation and exploratory sampling run in an executor, one visual request at a time, with five-minute aggregate caching. The seven views share this API. Resource registration uses Core 2026.7.2's Lovelace storage collection; YAML-managed resource configuration stays explicit.
+
+The displayed transition matrix aggregates the actual pooled semi-Markov counts into eight frequent joint states plus Other. It does not allocate a 2**N matrix, impute missing states or infer a room-to-room movement graph. Heatmap denominators are per entity. Solar intervals resample whole dates, not individual five-minute points. See [dashboard semantics](DASHBOARDS.md) for statistical limits.
+
+The transition matrix refreshes from the latest archived complete observations on a five-minute cache cycle, even before model readiness. It uses the same uncensored-run rule as model fitting; it can include newer evidence than the currently fitted execution model, which updates on daily or explicit retraining. Missing or partial joint states are never invented to fill the matrix.

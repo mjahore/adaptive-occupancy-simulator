@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from homeassistant import loader
+from homeassistant.auth import auth_manager_from_config
 from homeassistant.bootstrap import async_load_base_functionality
 from homeassistant.helpers.recorder import async_initialize_recorder
 from homeassistant.setup import async_setup_component
@@ -15,12 +16,13 @@ from custom_components.adaptive_occupancy_simulator.const import DOMAIN
 
 
 @pytest.fixture
-async def installed(hass, config):
+async def installed(hass, config, unused_tcp_port):
     target = Path(hass.config.path("custom_components", DOMAIN))
     await hass.async_add_executor_job(shutil.copytree, Path("custom_components") / DOMAIN, target)
     loader.async_setup(hass)
     assert await async_load_base_functionality(hass)
     async_initialize_recorder(hass)
+    hass.auth = await auth_manager_from_config(hass, [], [])
     for e in config["persons"]:
         hass.states.async_set(e, "home")
     hass.states.async_set(config["alarm"], "armed_home")
@@ -29,6 +31,9 @@ async def installed(hass, config):
         hass.states.async_set(e, "off")
     assert await async_setup_component(
         hass, "recorder", {"recorder": {"db_url": "sqlite:///" + hass.config.path("recorder.sqlite")}}
+    )
+    assert await async_setup_component(
+        hass, "http", {"http": {"server_port": unused_tcp_port, "server_host": "127.0.0.1"}}
     )
     assert await async_setup_component(hass, DOMAIN, {})
     await hass.async_start()
@@ -130,3 +135,62 @@ async def test_real_recorder_query(installed, config, entity_id):
     assert raw.get(entity_id), raw
     assert raw[entity_id][-1].state == "on"
     assert raw[entity_id][-1].last_updated.tzinfo
+
+
+async def test_visual_resource_controls_and_authenticated_api(installed, config):
+    import re
+
+    from aiohttp import ClientSession
+    from homeassistant.components.lovelace.const import LOVELACE_DATA
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.adaptive_occupancy_simulator.frontend import CARD_PATH, CARD_URL
+    from custom_components.adaptive_occupancy_simulator.visuals import dashboard_data
+
+    hass = installed
+    entry = await create_entry(hass, config)
+    # The classic fallback must reference actual entities from a clean installation.
+    classic = Path("dashboards/aos-classic.yaml").read_text()
+    ids = set(
+        re.findall(r"(?:button|switch|sensor|binary_sensor)\.adaptive_occupancy_simulator[a-z_]*", classic)
+    )
+    assert ids and all(hass.states.get(entity) for entity in ids)
+    resources = hass.data[LOVELACE_DATA].resources
+    assert [r["url"] for r in resources.async_items() if r["url"].startswith(CARD_PATH)] == [CARD_URL]
+    registry = er.async_get(hass)
+    entity = registry.async_get_entity_id("button", DOMAIN, f"{entry.entry_id}_regenerate")
+    assert entity == "button.adaptive_occupancy_simulator_regenerate_preview"
+    registry.async_update_entity(entity, new_entity_id="button.my_aos_new_plan")
+    data = await dashboard_data(entry.runtime_data)
+    assert data["controls"]["regenerate"] == "button.my_aos_new_plan"
+    assert await hass.config_entries.async_reload(entry.entry_id)
+    await hass.async_block_till_done()
+    assert len([r for r in resources.async_items() if r["url"].startswith(CARD_PATH)]) == 1
+    url = f"http://127.0.0.1:{hass.http.server_port}"
+    owner = await hass.auth.async_create_user("Test owner")
+    assert owner.is_admin
+    regular = await hass.auth.async_create_user("Test non-admin")
+    assert not regular.is_admin
+    async with ClientSession() as client:
+        async with client.get(url + CARD_URL) as response:
+            assert response.status == 200
+            assert "javascript" in response.content_type
+            assert "customElements.define" in await response.text()
+        for user in (owner, regular):
+            refresh = await hass.auth.async_create_refresh_token(user, client_id="http://localhost/")
+            token = hass.auth.async_create_access_token(refresh)
+            async with client.ws_connect(url + "/api/websocket") as ws:
+                assert (await ws.receive_json())["type"] == "auth_required"
+                await ws.send_json({"type": "auth", "access_token": token})
+                assert (await ws.receive_json())["type"] == "auth_ok"
+                await ws.send_json({"id": 1, "type": f"{DOMAIN}/dashboard"})
+                result = await ws.receive_json()
+                assert result["success"] == user.is_admin
+                if user.is_admin:
+                    assert result["result"]["controls"]["regenerate"] == "button.my_aos_new_plan"
+                    assert result["result"]["history"]["frames"] == 0
+                    await ws.send_json({"id": 2, "type": f"{DOMAIN}/dashboard", "day_offset": 2})
+                    assert not (await ws.receive_json())["success"]
+                    await ws.send_json({"id": 3, "type": f"{DOMAIN}/dashboard", "solar_shift": 121})
+                    assert not (await ws.receive_json())["success"]
+    assert await hass.config_entries.async_unload(entry.entry_id)

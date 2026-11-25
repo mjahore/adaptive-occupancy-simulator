@@ -2,7 +2,7 @@
 
 DOMAIN = "adaptive_occupancy_simulator"
 NAME = "Adaptive Occupancy Simulator"
-VERSION = "0.1.2"
+VERSION = "0.2.0"
 LIGHTING_DOMAINS = ("light", "switch")
 STEP_SECONDS = 300
 MAX_LIGHTS = 48

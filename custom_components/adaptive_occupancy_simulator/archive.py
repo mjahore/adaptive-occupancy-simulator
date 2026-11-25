@@ -31,6 +31,14 @@ class Archive:
                 CREATE TABLE IF NOT EXISTS exclusions (
                     id INTEGER PRIMARY KEY, start INTEGER, end INTEGER, reason TEXT);
             """)
+            columns = {row[1] for row in conn.execute("PRAGMA table_info(frames)")}
+            for name, declaration in (
+                ("known_mask", "INTEGER"),
+                ("baseline_eligible", "INTEGER DEFAULT 0"),
+                ("origin", "TEXT DEFAULT 'legacy'"),
+            ):
+                if name not in columns:
+                    conn.execute(f"ALTER TABLE frames ADD COLUMN {name} {declaration}")
             row = conn.execute("SELECT value FROM metadata WHERE key='identity'").fetchone()
             if row and row[0] != self.identity:
                 # Bit positions and interlocks have changed: never reinterpret old masks.
@@ -38,17 +46,25 @@ class Archive:
             conn.execute("INSERT OR REPLACE INTO metadata VALUES ('identity', ?)", (self.identity,))
 
     def write(self, frames, *, replace=False):
-        verb = "REPLACE" if replace else "IGNORE"
+        columns = "ts,mask,minute,weekend,elevation,eligible,reason,known_mask,baseline_eligible,origin"
+        update = ",".join(f"{key}=excluded.{key}" for key in columns.split(",")[1:])
+        # Preserve live observations and legacy complete/unsafe frames. Re-scan only
+        # legacy light_unknown rows to recover partial evidence with current gates.
+        guard = (
+            ""
+            if replace
+            else " WHERE frames.origin='import' OR (frames.origin='legacy' AND frames.reason='light_unknown')"
+        )
         with closing(self.connect()) as conn, conn:
             conn.executemany(
-                f"INSERT OR {verb} INTO frames VALUES (?, ?, ?, ?, ?, ?, ?)",
-                [astuple(frame) for frame in frames],
+                f"INSERT INTO frames ({columns}) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(ts) DO UPDATE SET {update}{guard}",
+                [(*astuple(frame), "live" if replace else "import") for frame in frames],
             )
 
     def read(self):
         with closing(self.connect()) as conn:
             rows = conn.execute("""
-                SELECT f.* FROM frames f WHERE NOT EXISTS
+                SELECT f.ts,f.mask,f.minute,f.weekend,f.elevation,f.eligible,f.reason,f.known_mask,f.baseline_eligible FROM frames f WHERE NOT EXISTS
                 (SELECT 1 FROM exclusions e WHERE f.ts >= e.start AND f.ts < e.end)
                 ORDER BY ts
             """).fetchall()

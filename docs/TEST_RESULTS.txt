@@ -1,24 +1,44 @@
-AOS 0.1.2 validation record
-Date: 2026-11-25 (America/New_York client date)
-Execution environment: macOS ARM64
-Python: 3.14.6
-Home Assistant Core: 2026.7.2
+........................................................................ [ 86%]
+...........                                                              [100%]
+=============================== warnings summary ===============================
+../../work/target/lib/python3.14/site-packages/homeassistant/components/http/__init__.py:347
+  <test-environment>/lib/python3.14/site-packages/homeassistant/components/http/__init__.py:347: DeprecationWarning: Inheritance class HomeAssistantApplication from web.Application is discouraged
+    class HomeAssistantApplication(web.Application):
 
-pytest -q
-60 passed, 5 warnings in 0.60s
+../../work/target/lib/python3.14/site-packages/backoff/_decorator.py:201
+  <test-environment>/lib/python3.14/site-packages/backoff/_decorator.py:201: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(target):
 
-ruff check .
-All checks passed!
+../../work/target/lib/python3.14/site-packages/backoff/_async.py:11
+  <test-environment>/lib/python3.14/site-packages/backoff/_async.py:11: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(coro_or_func):
 
-ruff format --check .
-30 files already formatted
+../../work/target/lib/python3.14/site-packages/backoff/_async.py:127
+  <test-environment>/lib/python3.14/site-packages/backoff/_async.py:127: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    assert not asyncio.iscoroutinefunction(max_tries)
 
-Warnings: 5 upstream dependency deprecations (aiohttp subclass and backoff asyncio introspection).
-The suite includes actual HA config/options/platform lifecycle, event/service dispatch,
-SQLite Recorder light and switch history, mixed-target dispatch/cancellation,
-own-control exclusion even after renaming, HA template rendering and isolated behavioral tests.
-No physical home device was contacted. See VERIFICATION.md for target acceptance gaps.
+../../work/target/lib/python3.14/site-packages/backoff/_async.py:128
+  <test-environment>/lib/python3.14/site-packages/backoff/_async.py:128: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    assert not asyncio.iscoroutinefunction(jitter)
 
-Hosted HACS/hassfest workflows: see GitHub Actions for the current commit.
-HAOS Raspberry Pi 4 and physical Canary/lights/switches: not available for validation.
-Frontend browser rendering: not performed; all dashboard Markdown templates rendered with HA.
+tests/test_integration.py::test_full_setup_options_reload_and_unload
+tests/test_integration.py::test_native_setup_with_only_lighting_switches
+tests/test_integration.py::test_real_recorder_query[light.kitchen]
+tests/test_integration.py::test_real_recorder_query[switch.table_lamp]
+tests/test_integration.py::test_visual_resource_controls_and_authenticated_api
+  <test-environment>/lib/python3.14/site-packages/homeassistant/components/http/__init__.py:432: NotAppKeyWarning: It is recommended to use web.AppKey instances for keys.
+  https://docs.aiohttp.org/en/stable/web_advanced.html#application-s-config
+    self.app["hass"] = self.hass  # For backwards compatibility
+
+tests/test_integration.py::test_visual_resource_controls_and_authenticated_api
+  <test-environment>/lib/python3.14/site-packages/homeassistant/components/http/auth.py:260: NotAppKeyWarning: It is recommended to use web.RequestKey instances for keys.
+  https://docs.aiohttp.org/en/stable/web_advanced.html#request-s-storage
+    request[KEY_AUTHENTICATED] = authenticated
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+83 passed, 11 warnings in 1.08s
+
+Python 3.14.6 / Home Assistant Core 2026.7.2, macOS ARM64.
+ruff check: passed. ruff format --check: 34 files formatted.
+Bundled JavaScript: node --check passed.
+Light/switch services are simulated; no real household devices contacted.

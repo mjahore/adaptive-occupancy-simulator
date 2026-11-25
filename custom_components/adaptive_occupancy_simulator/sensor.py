@@ -30,7 +30,7 @@ class AOSSensor(AOSEntity, SensorEntity):
         if self.key == "schedule":
             return max(0, len(r.plan) - r.cursor)
         if self.key == "learning":
-            return "training" if r.busy else (r._learning_reason() or "learning")
+            return r.learning_status
         if self.key == "history":
             return r.summary.get("frames", 0)
         if self.key == "model":
@@ -68,6 +68,7 @@ class AOSSensor(AOSEntity, SensorEntity):
                 "minimum_days": r.config["minimum_days"],
                 "last_train_day": r.last_train_day,
                 "eligible_now": not bool(r._learning_reason()),
+                "partial_eligible_now": r.learning_status == "learning_partial",
             }
         if self.key == "history":
             return r.summary

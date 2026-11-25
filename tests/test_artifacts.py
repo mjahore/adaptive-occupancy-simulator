@@ -27,7 +27,7 @@ async def test_seven_dashboards_render_with_missing_and_populated_data(hass):
     from homeassistant.helpers import template
 
     template.async_setup(hass)
-    dashboard = yaml.safe_load(Path("dashboards/aos.yaml").read_text())
+    dashboard = yaml.safe_load(Path("dashboards/aos-classic.yaml").read_text())
     assert len(dashboard["views"]) == 7
     assert len({v["path"] for v in dashboard["views"]}) == 7
     for populated in (False, True):

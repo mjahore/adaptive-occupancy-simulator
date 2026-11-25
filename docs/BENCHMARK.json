@@ -4,10 +4,10 @@
   "architecture": "arm64",
   "frames": 105120,
   "lights": 32,
-  "fixture_seconds": 0.492,
-  "fit_seconds": 0.282,
-  "plan_seconds": 2.324,
-  "peak_python_allocations_mib": 27.6,
+  "fixture_seconds": 0.731,
+  "fit_seconds": 2.721,
+  "plan_seconds": 2.456,
+  "peak_python_allocations_mib": 36.94,
   "actions": 308,
   "model": {
     "eligible_frames": 105120,
@@ -15,7 +15,12 @@
     "joint_states": 256,
     "transition_contexts": 514,
     "observed_transitions": 12041,
-    "ready": true
+    "ready": true,
+    "complete_model_ready": true,
+    "partial_frames": 0,
+    "baseline_ready_targets": 32,
+    "mode": "complete",
+    "best_target_days": 365
   },
   "note": "Synthetic benchmark with tracemalloc overhead; not a Raspberry Pi measurement."
 }

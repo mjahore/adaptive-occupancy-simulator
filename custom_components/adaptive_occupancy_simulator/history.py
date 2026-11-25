@@ -3,11 +3,11 @@
 from datetime import UTC, datetime, timedelta
 from functools import partial
 
-from .const import STEP_SECONDS, occupancy_reason
+from .const import STEP_SECONDS, UNKNOWN, occupancy_reason
 from .model import Frame
 
 
-def resample(history, start, end, config, feature, aos_entity=None):
+def resample(history, start, end, config, feature, aos_entity=None, report=None):
     """Require known, eligible occupancy for EVERY instant in each interval.
 
     `history` is entity -> [(epoch_seconds, state)]. A missing start state is
@@ -34,18 +34,45 @@ def resample(history, start, end, config, feature, aos_entity=None):
             states[entity] = state
             cursor += 1
         why = reason()
+        known = sum(1 << i for i, e in enumerate(config["lights"]) if states.get(e) in {"on", "off"})
+        baseline_ok = not occupancy_reason(
+            states, config, learning=True, enabled=bool(aos_entity and states.get(aos_entity) == "on")
+        )
+        unknown = set()
+
+        def missing():
+            unknown.update(
+                e
+                for e in config["lights"] + config["legacy_automations"]
+                if states.get(e) not in {"on", "off"}
+            )
+            unknown.update(e for e in config["persons"] + [config["alarm"]] if states.get(e) in UNKNOWN)
+
+        missing()
         mask = sum(1 << i for i, e in enumerate(config["lights"]) if states.get(e) == "on")
         while cursor < len(events) and events[cursor][0] < ts + STEP_SECONDS:
             _, entity, state = events[cursor]
             states[entity] = state
             why = why or reason()
+            known &= sum(1 << i for i, e in enumerate(config["lights"]) if states.get(e) in {"on", "off"})
+            baseline_ok = baseline_ok and not occupancy_reason(
+                states, config, learning=True, enabled=bool(aos_entity and states.get(aos_entity) == "on")
+            )
+            missing()
             cursor += 1
         minute, weekend, elevation = feature(ts)
-        frames.append(Frame(ts, mask, minute, weekend, elevation, not bool(why), why))
+        frames.append(
+            Frame(
+                ts, mask, minute, weekend, elevation, not bool(why), why, known, baseline_ok and bool(known)
+            )
+        )
+        if report is not None:
+            for entity in unknown:
+                report["entities"][entity]["unknown_intervals"] += 1
     return frames
 
 
-async def import_recorder(hass, config, archive, feature, alive, aos_entity=None):
+async def import_recorder(hass, config, archive, feature, alive, aos_entity=None, report=None):
     """Read selected entity history one day per job on Recorder's executor."""
     from homeassistant.components.recorder.history import get_significant_states
     from homeassistant.helpers.recorder import get_instance
@@ -61,6 +88,18 @@ async def import_recorder(hass, config, archive, feature, alive, aos_entity=None
             + ([aos_entity] if aos_entity else [])
         )
     )
+    if report is not None:
+        report.clear()
+        report.update(
+            start=start.isoformat(),
+            end=end.isoformat(),
+            chunks=0,
+            entities={
+                entity: {"records": 0, "missing_chunks": 0, "unknown_records": 0, "unknown_intervals": 0}
+                for entity in entities
+                if entity != aos_entity
+            },
+        )
     imported = 0
     while start < end and alive():
         until = min(start + timedelta(days=1), end)
@@ -82,11 +121,19 @@ async def import_recorder(hass, config, archive, feature, alive, aos_entity=None
         )
         if not alive():
             break
+        if report is not None:
+            report["chunks"] += 1
+            for entity in report["entities"]:
+                values = raw.get(entity, [])
+                row = report["entities"][entity]
+                row["records"] += len(values)
+                row["missing_chunks"] += not bool(values)
+                row["unknown_records"] += sum(s.state in {"unknown", "unavailable"} for s in values)
         history = {
             entity: [(s.last_updated.timestamp(), s.state) for s in states] for entity, states in raw.items()
         }
         frames = await hass.async_add_executor_job(
-            resample, history, start.timestamp(), until.timestamp(), config, feature, aos_entity
+            resample, history, start.timestamp(), until.timestamp(), config, feature, aos_entity, report
         )
         if not alive():
             break

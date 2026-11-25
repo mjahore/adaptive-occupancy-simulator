@@ -3,302 +3,49 @@ views:
 - title: Overview
   path: overview
   icon: mdi:home-lightbulb
+  type: panel
   cards:
-  - type: markdown
-    title: Adaptive Occupancy Simulator
-    content: AOS learns your household’s joint lighting patterns and replays a varied schedule during Away Mode.
-      **Dry run is on by default.** Returning home cancels future commands and leaves lights as they are.
-  - type: entities
-    title: Simulation
-    show_header_toggle: false
-    entities:
-    - switch.adaptive_occupancy_simulator
-    - switch.adaptive_occupancy_simulator_dry_run
-    - sensor.adaptive_occupancy_simulator_status
-    - binary_sensor.adaptive_occupancy_simulator_safe_to_simulate
-    - binary_sensor.adaptive_occupancy_simulator_model_ready
-    - sensor.adaptive_occupancy_simulator_next_action
-  - type: button
-    entity: button.adaptive_occupancy_simulator_stop
-    name: Stop now • leave lights unchanged
-    tap_action:
-      action: perform-action
-      perform_action: button.press
-      target:
-        entity_id: button.adaptive_occupancy_simulator_stop
-  - type: history-graph
-    title: Recent status
-    hours_to_show: 24
-    entities:
-    - sensor.adaptive_occupancy_simulator_status
-    - switch.adaptive_occupancy_simulator
-    - switch.adaptive_occupancy_simulator_dry_run
-  - type: markdown
-    title: Interlock
-    content: 'Current status: **{{ states(''sensor.adaptive_occupancy_simulator_status'') }}**
-
-
-      {{ state_attr(''sensor.adaptive_occupancy_simulator_status'', ''error'') or ''No current error.'' }}'
+  - type: custom:aos-dashboard-card
+    view: overview
 - title: Live Activity
   path: activity
   icon: mdi:timeline-clock
+  type: panel
   cards:
-  - type: markdown
-    title: Recent decisions
-    content: '| Time | Result | Light | Action |
-
-      |---|---|---|---|
-
-      {% for item in state_attr(''sensor.adaptive_occupancy_simulator_activity'', ''recent'') or [] %}
-
-      | {{ as_timestamp(item.time) | timestamp_custom(''%H:%M:%S'', true) }} | {{ item.result }} | {{ item.entity
-      | default(''—'') }} | {{ item.action | default(item.detail) }} |
-
-      {% endfor %}'
-  - type: markdown
-    title: Manual overrides
-    content: '{% for entity, until in (state_attr(''sensor.adaptive_occupancy_simulator_activity'', ''overrides'')
-      or {}).items() %}
-
-      - {{ entity }}: paused until {{ until | timestamp_custom(''%a %H:%M'', true) }}
-
-      {% else %}
-
-      No active manual overrides.
-
-      {% endfor %}'
-  - type: button
-    entity: button.adaptive_occupancy_simulator_clear_overrides
-    name: Clear overrides
-    tap_action:
-      action: perform-action
-      perform_action: button.press
-      target:
-        entity_id: button.adaptive_occupancy_simulator_clear_overrides
-  - type: button
-    entity: button.adaptive_occupancy_simulator_stop
-    name: Stop simulation
-    tap_action:
-      action: perform-action
-      perform_action: button.press
-      target:
-        entity_id: button.adaptive_occupancy_simulator_stop
+  - type: custom:aos-dashboard-card
+    view: activity
 - title: Schedule
   path: schedule
-  icon: mdi:calendar-clock
+  icon: mdi:chart-timeline
+  type: panel
   cards:
-  - type: entities
-    title: Daily plan
-    show_header_toggle: false
-    entities:
-    - sensor.adaptive_occupancy_simulator_schedule
-    - sensor.adaptive_occupancy_simulator_next_action
-  - type: markdown
-    title: Upcoming light actions
-    content: 'Showing up to 40 future actions. Times use Home Assistant’s configured timezone.
-
-
-      | Time | Light | Action | Model |
-
-      |---|---|---|---|
-
-      {% for item in state_attr(''sensor.adaptive_occupancy_simulator_schedule'', ''preview'') or [] %}
-
-      | {{ item.ts | timestamp_custom(''%a %H:%M:%S'', true) }} | {{ item.entity_id }} | {{ ''On'' if item.on else
-      ''Off'' }} | {{ item.source }} |
-
-      {% endfor %}'
-  - type: button
-    entity: button.adaptive_occupancy_simulator_regenerate
-    name: Regenerate preview
-    tap_action:
-      action: perform-action
-      perform_action: button.press
-      target:
-        entity_id: button.adaptive_occupancy_simulator_regenerate
-  - type: markdown
-    title: Schedule behavior
-    content: Regeneration changes the stored plan. It does not call lights directly. When AOS is enabled, future
-      events in the replacement plan become active. Missed events are skipped after a restart; they are never replayed
-      in a burst.
+  - type: custom:aos-dashboard-card
+    view: schedule
 - title: Learning
   path: learning
-  icon: mdi:school
+  icon: mdi:calendar-clock
+  type: panel
   cards:
-  - type: entities
-    title: Learning readiness
-    show_header_toggle: false
-    entities:
-    - sensor.adaptive_occupancy_simulator_learning
-    - sensor.adaptive_occupancy_simulator_model
-    - binary_sensor.adaptive_occupancy_simulator_model_ready
-  - type: markdown
-    title: When AOS learns
-    content: At least one configured resident must be home, every resident must have a known state, the alarm must
-      be in a configured home state, every legacy vacation automation must be known and off, and AOS must be disabled.
-      Any uncertain part of a five-minute interval excludes the whole interval.
-  - type: button
-    entity: button.adaptive_occupancy_simulator_import_history
-    name: Import Recorder history
-    tap_action:
-      action: perform-action
-      perform_action: button.press
-      target:
-        entity_id: button.adaptive_occupancy_simulator_import_history
-  - type: button
-    entity: button.adaptive_occupancy_simulator_retrain
-    name: Retrain local model
-    tap_action:
-      action: perform-action
-      perform_action: button.press
-      target:
-        entity_id: button.adaptive_occupancy_simulator_retrain
-  - type: markdown
-    title: Retention
-    content: 'AOS retention: {{ state_attr(''sensor.adaptive_occupancy_simulator_learning'', ''retention_days'')
-      }} days.
-
-
-      Minimum eligible days: {{ state_attr(''sensor.adaptive_occupancy_simulator_learning'', ''minimum_days'') }}.
-
-
-      Last training date: {{ state_attr(''sensor.adaptive_occupancy_simulator_learning'', ''last_train_day'') or
-      ''Not trained yet'' }}.
-
-
-      Recorder’s own retention is separate. Purged history cannot be recovered.'
+  - type: custom:aos-dashboard-card
+    view: learning
 - title: History & Exclusions
   path: history
   icon: mdi:filter-clock
+  type: panel
   cards:
-  - type: entities
-    title: Compact archive
-    show_header_toggle: false
-    entities:
-    - sensor.adaptive_occupancy_simulator_history
-  - type: markdown
-    title: Eligibility counts
-    content: 'Counts include stored eligible and rejected frames, before explicit interval exclusions.
-
-
-      | Reason | Five-minute frames |
-
-      |---|---|
-
-      {% for reason, count in (state_attr(''sensor.adaptive_occupancy_simulator_history'', ''counts'') or {}).items()
-      %}
-
-      | {{ reason or ''Eligible'' }} | {{ count }} |
-
-      {% endfor %}'
-  - type: markdown
-    title: Excluded periods
-    content: 'Most recent 100 explicit and AOS session exclusions. Legacy exclusions are recorded per frame above.
-
-
-      | Start | End | Reason |
-
-      |---|---|---|
-
-      {% for item in state_attr(''sensor.adaptive_occupancy_simulator_history'', ''exclusions'') or [] %}
-
-      | {{ item.start | timestamp_custom(''%Y-%m-%d %H:%M'', true) }} | {{ ''Open session'' if item.end > 20000000000
-      else item.end | timestamp_custom(''%Y-%m-%d %H:%M'', true) }} | {{ item.reason }} |
-
-      {% endfor %}'
-  - type: markdown
-    title: Add an exclusion
-    content: 'Open **Developer tools → Actions → Adaptive Occupancy Simulator: Exclude historical period**. Enter
-      ISO timestamps with timezone offsets and a reason. This stops simulation, clears the old plan, excludes every
-      overlapping five-minute frame, and retrains. Re-enable Away Mode explicitly when ready.'
+  - type: custom:aos-dashboard-card
+    view: history
 - title: Model Diagnostics
   path: model
   icon: mdi:chart-scatter-plot
+  type: panel
   cards:
-  - type: entities
-    title: Model evidence
-    show_header_toggle: false
-    entities:
-    - sensor.adaptive_occupancy_simulator_model
-    - binary_sensor.adaptive_occupancy_simulator_model_ready
-  - type: markdown
-    title: Model statistics
-    content: '| Metric | Value |
-
-      |---|---|
-
-      {% for key in [''eligible_frames'', ''eligible_days'', ''joint_states'', ''transition_contexts'', ''observed_transitions'',
-      ''ready''] %}
-
-      | {{ key | replace(''_'', '' '') }} | {{ state_attr(''sensor.adaptive_occupancy_simulator_model'', key) |
-      default(''—'', true) }} |
-
-      {% endfor %}'
-  - type: markdown
-    title: How the hybrid model works
-    content: '**Bootstrap:** samples contiguous multi-room light blocks from eligible history, conditioned on local
-      time, weekday/weekend and solar elevation.
-
-
-      **Sparse semi-Markov:** samples observed transitions between joint room states and empirical dwell times;
-      pools across contexts when exact evidence is sparse.
-
-
-      No evidence produces no invented light activity. The model estimates lighting patterns, not a calibrated probability
-      that someone is home.'
-  - type: markdown
-    title: Limits
-    content: Only on/off state is simulated. Five-minute sampling loses brief activity. Concurrent-light and dwell
-      limits can alter empirical patterns. Diagnostics downloads omit entity identifiers, precise timestamps, schedules
-      and location.
+  - type: custom:aos-dashboard-card
+    view: model
 - title: Settings & Safety
   path: settings
   icon: mdi:shield-cog
+  type: panel
   cards:
-  - type: entities
-    title: Controls
-    show_header_toggle: false
-    entities:
-    - switch.adaptive_occupancy_simulator
-    - switch.adaptive_occupancy_simulator_dry_run
-    - binary_sensor.adaptive_occupancy_simulator_safe_to_simulate
-  - type: button
-    entity: button.adaptive_occupancy_simulator_stop
-    name: Stop now
-    tap_action:
-      action: perform-action
-      perform_action: button.press
-      target:
-        entity_id: button.adaptive_occupancy_simulator_stop
-  - type: markdown
-    title: Configure AOS
-    content: '[Open integration settings](/config/integrations/integration/adaptive_occupancy_simulator) and choose
-      **Configure** to edit entities, alarm states, historical filters, model parameters and limits. Configuration
-      changes stop the old runtime and reset live authorization to dry run.'
-  - type: markdown
-    title: Configured household
-    content: 'Residents: {{ (state_attr(''sensor.adaptive_occupancy_simulator_status'', ''persons'') or []) | join('',
-      '') }}
-
-
-      Alarm: {{ state_attr(''sensor.adaptive_occupancy_simulator_status'', ''alarm'') }}
-
-
-      Allowed away states: {{ (state_attr(''sensor.adaptive_occupancy_simulator_status'', ''away_states'') or [])
-      | join('', '') }}
-
-
-      Lights: {{ (state_attr(''sensor.adaptive_occupancy_simulator_status'', ''lights'') or []) | join('', '') }}
-
-
-      Legacy sentinels: {{ (state_attr(''sensor.adaptive_occupancy_simulator_status'', ''legacy_automations'') or
-      []) | join('', '') }}'
-  - type: markdown
-    title: Before live use
-    content: 'Keep dry run on until the migration guide and household acceptance checks are complete. Stop AOS before
-      changing dry-run mode. Do not include exterior security lighting, light groups overlapping other selected
-      lights, or lighting that must stay under independent automation control.
-
-
-      AOS never arms the alarm or controls HVAC, locks, doors, or notifications. A command already dispatched to
-      a device cannot be recalled; return-home cancellation prevents subsequent commands.'
+  - type: custom:aos-dashboard-card
+    view: settings

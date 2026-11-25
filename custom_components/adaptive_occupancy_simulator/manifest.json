@@ -6,7 +6,10 @@
   ],
   "config_flow": true,
   "dependencies": [
-    "recorder"
+    "http",
+    "lovelace",
+    "recorder",
+    "websocket_api"
   ],
   "documentation": "https://github.com/mjahore/adaptive-occupancy-simulator",
   "integration_type": "service",
@@ -14,5 +17,5 @@
   "issue_tracker": "https://github.com/mjahore/adaptive-occupancy-simulator/issues",
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.1.2"
+  "version": "0.2.0"
 }

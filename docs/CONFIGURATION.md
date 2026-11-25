@@ -25,7 +25,7 @@ Removing a legacy sentinel explicitly removes that guard from subsequent imports
 
 Update to AOS 0.1.2 or newer in HACS and restart Home Assistant. Open **Settings → Devices & services → Adaptive Occupancy Simulator → Configure**, then add the desired `switch.*` entities under **Lights and lighting switches to simulate**. Complete the remaining settings and save. Existing light-only selections remain supported, and the away/return scripts require no changes for this update.
 
-Changing the ordered selection clears incompatible joint-state training frames and the daily plan, resets AOS to disabled with dry run on, and imports retained Recorder history for the new selection. Previously purged history cannot be recovered. Review Learning and the preview before explicitly enabling again; newly selected switches with missing history may delay readiness. Ensure Recorder records these switches. Existing historical legacy exclusions continue to apply.
+Changing the ordered selection clears incompatible joint-state training frames and the daily plan, resets AOS to disabled with dry run on, and imports retained Recorder history for the new selection. Previously purged history cannot be recovered. Review Learning and the preview before explicitly enabling again; newly selected switches with missing history remain unsupported until they have enough evidence; known neighbors can form a provisional baseline. Ensure Recorder records these switches. Existing historical legacy exclusions continue to apply.
 
 Both domains use the same on/off history, model and safeguards. AOS calls `light.turn_on/off` for lights and `switch.turn_on/off` for switches. All limits count selected entities, not bulbs: a lighting relay powering several lamps counts as one target. Returning home cancels pending commands for both types without changing their current states.
 
@@ -44,11 +44,17 @@ Both domains use the same on/off history, model and safeguards. AOS calls `light
 | Manual override pause minutes | 60 | 5–1440 |
 | Joint timing jitter seconds | 45 | 0–120 |
 
-The sample interval is five minutes. Block length is rounded down to a whole number of samples. Minimum eligible days counts local dates with eligible observations, not guaranteed full days of coverage. Always review the resulting plan: a readiness flag alone does not establish that every time of day has representative history.
+The sample interval is five minutes. Block length is rounded down to a whole number of samples. Minimum eligible days counts local dates with complete joint observations, or independently per target for the provisional baseline. It does not guarantee full days of coverage. Unknown lights withhold only their own observations; unknown people, alarm or legacy sentinels still block the whole interval. Always review the resulting plan: a readiness flag alone does not establish that every time of day has representative history.
 
 The maximum-on runtime timer applies to lights AOS actually turned on and still owns. It remains subject to occupancy, alarm and manual override interlocks; it never forces a light off after someone returns or while the alarm/presence is uncertain. A temporarily unavailable light may remain on beyond the limit. On recovery, AOS can attempt its overdue off command if every interlock permits it.
 
 Outside light state or attribute changes pause that light and release AOS's maximum-on ownership. HA action context and parent context distinguish AOS commands from other changes; devices that lose context may create conservative false overrides. Concurrent limits count observed on states plus AOS commands awaiting state acknowledgement. AOS does not turn off unrelated manually lit rooms to enforce a cap.
+
+## Reading more retained history
+
+The default Recorder import lookback is ten days. AOS's 365-day archive retention controls how long AOS keeps collected observations; it does not automatically request a year from Recorder. If Recorder actually retains older on/off states, increase **Recorder import lookback days** in Configure, complete the options flow, then import. Configuration changes reset AOS to disabled/dry run and clear the daily plan. Increasing lookback cannot reconstruct purged states, and long-term numeric statistics are not a replacement for on/off history. [Recorder documentation](https://www.home-assistant.io/integrations/recorder/) explains its retention and filters.
+
+The **Learning → Recorder import** table identifies unknown intervals and missing chunks for every selected entity. An `off` light is valid training evidence. A missing, `unknown` or `unavailable` light withholds only its own data. `legacy_unknown` remains quarantined: a disabled automation now does not establish that it was disabled in the past. Keep legacy sentinels and explicit vacation exclusions during migration.
 
 ## Entities
 
@@ -65,7 +71,7 @@ Expected IDs use the prefix `adaptive_occupancy_simulator`; HA may append a suff
 | Activity sensor | Last 25 decisions and override expirations |
 | Stop, Import history, Retrain, Regenerate preview, Clear overrides buttons | Native maintenance actions |
 
-The schedule preview shows at most 40 future commands. The full current daily plan is in AOS's private storage file. Activity keeps 100 recent decisions internally, with 25 exposed to the dashboard; it is not an unlimited audit log.
+The native schedule sensor previews at most 40 future commands; the visual dashboard reads the full current daily plan. Activity keeps 100 recent decisions internally, with 25 in sensor attributes and 50 displayed by the visual card; it is not an unlimited audit log. The learning sensor reports `learning_partial` when known devices can learn despite an unknown neighbor. Model eligible-day counts still represent complete joint history; the visual Learning view adds usable dates per device.
 
 ## Actions
 

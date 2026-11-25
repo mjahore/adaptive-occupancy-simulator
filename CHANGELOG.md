@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.0 — 2026-11-25
+
+- Bundle a seven-view visual dashboard: full lighting timelines, hourly heatmaps, solar association bars, observed transition probability matrix with counts and dwell times, coverage and a read-only synthetic-day explorer.
+- Preserve known-device observations when another light or lighting switch is unknown/unavailable. Build a provisional partial joint-block baseline per device, then prioritize complete joint bootstrap/semi-Markov evidence as it grows. Unknown states never become off.
+- Keep occupancy, Canary, legacy vacation, AOS-session and explicit exclusion guards for all baseline data and commands. Return-home cancellation and dry-run defaults are unchanged.
+- Add per-entity Recorder import diagnostics and usable-date counts; distinguish partial learning from complete joint eligibility. Upgrade old archive rows conservatively and re-scan retained light-unknown history.
+- Resolve dashboard controls through the entity registry, including renamed regenerate controls; fix the classic dashboard regenerate ID.
+- Serve a versioned local card resource and administrator-only WebSocket data; verify registration, authentication, native lifecycle and actual SQLite Recorder on Core 2026.7.2 / Python 3.14.6.
+- Existing pasted dashboards must be replaced with the new YAML after update/restart. No additional script migration is needed for users already on 0.1.x.
+
 ## 0.1.2 — 2026-11-25
 
 - Allow `switch.*` entities alongside `light.*` in native setup and options for lighting plugs, relays and switches.

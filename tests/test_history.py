@@ -83,7 +83,7 @@ def test_archive_exclusion_retention_and_identity(tmp_path):
     archive = Archive(tmp_path / "aos.sqlite", {"lights": ["light.a", "light.b"]})
     archive.initialize()
     frames = [Frame(i * 300, 1, i * 5, 0, 0) for i in range(4)]
-    archive.write(frames)
+    archive.write(frames, replace=True)
     archive.write([replace(frames[0], mask=2)])
     assert archive.read()[0].mask == 1  # import cannot overwrite live provenance
     exclusion = archive.exclude(300, 900, "vacation")
@@ -136,7 +136,12 @@ async def test_recorder_adapter_chunks_and_keeps_boundary_continuity(hass, confi
         "get_instance",
         lambda _: SimpleNamespace(async_add_executor_job=hass.async_add_executor_job),
     )
-    imported = await import_recorder(hass, {**config, "import_days": 2}, archive, feature, lambda: True)
+    report = {}
+    imported = await import_recorder(
+        hass, {**config, "import_days": 2}, archive, feature, lambda: True, report=report
+    )
+    assert report["chunks"] == len(calls) and 2 <= len(calls) <= 3
+    assert all(r["unknown_intervals"] == 0 and r["missing_chunks"] == 0 for r in report["entities"].values())
     rows = await hass.async_add_executor_job(archive.read)
     assert imported == len(rows) and imported >= 574
     assert all(r.eligible for r in rows)

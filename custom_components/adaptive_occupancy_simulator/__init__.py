@@ -10,6 +10,7 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_registry as er
 
 from .const import DOMAIN
+from .frontend import async_setup_frontend
 from .runtime import Runtime
 
 PLATFORMS = [Platform.SWITCH, Platform.SENSOR, Platform.BINARY_SENSOR, Platform.BUTTON]
@@ -62,6 +63,7 @@ async def async_setup(hass, config):
             else vol.Schema({})
         )
         hass.services.async_register(DOMAIN, name, handle, schema=schema)
+    await async_setup_frontend(hass)
     return True
 
 

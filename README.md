@@ -19,7 +19,7 @@ AOS never arms your alarm, changes HVAC, locks a door or sends a notification. Y
 5. Keep dry run on. Let the automatic Recorder import finish, review Learning and History, and follow the [migration guide](docs/MIGRATION.md) before editing the production scripts.
 6. Add the [seven-view dashboard](dashboards/aos.yaml) using the [dashboard instructions](docs/DASHBOARDS.md).
 
-Configuration is native: no integration YAML, AppDaemon, MQTT, cloud account, custom dashboard cards or additional Python packages are required. The integration uses dependencies already shipped in HA Core.
+Configuration is native: no integration YAML, AppDaemon, MQTT, cloud account or additional Python packages are required. The visual dashboard uses a card bundled with AOS; no separate frontend download is needed. A classic dashboard using only built-in cards is also included.
 
 ## What is included
 
@@ -30,7 +30,15 @@ Configuration is native: no integration YAML, AppDaemon, MQTT, cloud account, cu
 - Joint-light block sampling conditioned on civil time, weekday/weekend and solar elevation; empirical joint-state transitions and dwell distributions as a fallback.
 - Persistent daily plans, consumed-action cursor, mode and manual overrides. Missed commands are skipped after reload/restart.
 - Conservative interlocks, concurrent-light and dwell limits, manual override pauses, bounded logs and privacy-reduced diagnostics.
-- Seven native Lovelace views, minimal activation/deactivation examples, migration and rollback instructions.
+- Seven visual dashboard views with gold lighting timelines, hourly heatmaps, a transition probability matrix, solar association bars and a read-only synthetic-day explorer. Native controls and a classic built-in-card dashboard remain available.
+- Partial-history learning: an unknown light removes only its own observations. Known devices can form a provisional baseline, refined by complete joint history as it accumulates.
+- Per-entity Recorder import diagnostics, migration and rollback instructions.
+
+## Updating to 0.2.0
+
+Update AOS through HACS, restart Home Assistant, then refresh the browser. Replace your existing AOS dashboard's raw configuration with [dashboards/aos.yaml](dashboards/aos.yaml); a HACS update does not rewrite dashboards you previously pasted. See [dashboard setup and troubleshooting](docs/DASHBOARDS.md).
+
+Use **Learning → Import history** after updating to recover known-device observations from retained history previously rejected as `light_unknown`. The report shows missing history by entity. `legacy_unknown` still excludes the whole interval because AOS cannot establish whether legacy vacation lighting was enabled. Your existing away/return scripts require no further changes for this release.
 
 ## Operating modes
 
@@ -76,4 +84,4 @@ python -m venv .venv
 .venv/bin/ruff format --check .
 ```
 
-Tests use temporary Home Assistant configurations and simulated light and switch services. They do not connect to your home. MIT licensed. Version 0.1.2 is intended for staged household validation, with dry run first.
+Tests use temporary Home Assistant configurations and simulated light and switch services. They do not connect to your home. MIT licensed. Version 0.2.0 is intended for staged household validation, with dry run first.
